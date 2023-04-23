@@ -78,3 +78,39 @@ Shows the matched file path in the PR comment. Defaults to `true`.
 When matching files are updated in a PR, the action will automatically post a checklist containing items under that path's key.
 
 See https://github.com/wyozi/contextual-qa-checklist-action/pull/10#issuecomment-565644854 for an example PR checklist
+
+
+### Getting differences between commits
+The example below shows how to collect the list of files modified between two commits from their hashes. This strategy can be used from a list of different repositories that can be part of your project, for example if in your workflow you are making different GIT Clones and then you need to check the existence of changes between the most recent commit and the commit of your latest release.
+
+```yml
+on: [pull_request_target]
+
+jobs:
+  checklist_job:
+    runs-on: ubuntu-latest
+    name: Checklist job
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Checklist
+        uses: wyozi/contextual-qa-checklist-action@master
+        with:
+          gh-token: ${{ secrets.GITHUB_TOKEN }} 
+          compareCommits: |
+          [
+            {
+              "owner": ${{ owner_1 }},
+              "repo": ${{ repo_1 }},
+              "base": ${{ hash_base_1 }},
+              "head": ${{ hash_head_1 }}
+            },
+            {
+              "owner": ${{ owner_2 }},
+              "repo": ${{ repo_2 }},
+              "base": ${{ hash_base_2 }},
+              "head": ${{ hash_head_2 }}
+            },
+          ]   
+```
+

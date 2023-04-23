@@ -40,16 +40,42 @@ async function run() {
 
   const ghToken = core.getInput("gh-token");
   const client = github.getOctokit(ghToken);
-
   const checklistPaths = getChecklistPaths();
-  const modifiedPaths: string[] = (
+  let modifiedPaths: string[] = [];
+
+  //INFO Getting paths from PR
+  const modifiedPathsFromPR: string[] = (
     await client.rest.pulls.listFiles({
       owner: owner,
       repo: repo,
       pull_number: number,
     })
   ).data.map((file) => file.filename);
+  modifiedPaths = modifiedPaths.concat(
+    modifiedPathsFromPR.map((file: any) => file.filename)
+  );
 
+  //INFO Getting paths between base and head commits (compareCommits)
+  let compareCommitsList: any = [];
+  if (core.getInput("compareCommits")) {
+    compareCommitsList = JSON.parse(core.getInput("compareCommits"));
+    compareCommitsList.forEach(async (compareCommit) => {
+      const modifiedPathsFromCommit: string[] = (
+        await client.rest.repos.compareCommits({
+          owner: compareCommit.owner,
+          repo: compareCommit.repo,
+          base: compareCommit.base,
+          head: compareCommit.head,
+        })
+      ).data.files.map((file) => file.filename);
+
+      modifiedPaths.concat(
+        modifiedPathsFromCommit.map((file: any) => file.filename)
+      );
+    });
+  }
+
+  //INFO Preparing applicableChecklistPaths with all checklistPaths
   const applicableChecklistPaths = Object.entries(checklistPaths).filter(
     ([key, _]) => {
       for (const modifiedPath of modifiedPaths) {
