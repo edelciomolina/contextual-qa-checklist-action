@@ -5,10 +5,10 @@ const minimatch = require("minimatch");
 const { readFileSync } = require("fs");
 
 const header = core.getInput("comment-header");
-const footer = core.getInput("comment-footer")
+const footer = core.getInput("comment-footer");
 
 const minimatchOptions = {
-  dot: core.getInput('include-hidden-files') === 'true'
+  dot: core.getInput("include-hidden-files") === "true",
 };
 
 function getChecklistPaths(): Record<string, string[]> {
@@ -18,21 +18,25 @@ function getChecklistPaths(): Record<string, string[]> {
 }
 
 function formatItemsForPath([path, items]): string {
-  const showPaths = core.getInput("show-paths") === 'true';
+  const showPaths = core.getInput("show-paths") === "true";
 
   return showPaths
-  ? [
-      `__Files matching \`${path}\`:__\n`,
-      ...items.map((item) => `- [ ] ${item}\n`),
-      "\n",
-    ].join("")
-  : [...items.map((item) => `- [ ] ${item}\n`)].join("");
+    ? [
+        `__Files matching \`${path}\`:__\n`,
+        ...items.map((item) => `- [ ] ${item}\n`),
+        "\n",
+      ].join("")
+    : [...items.map((item) => `- [ ] ${item}\n`)].join("");
 }
 
 async function run() {
   const context = github.context;
   const { owner, repo } = context.repo;
-  const number = (context.payload.issue ?? context.payload.pull_request ?? context.payload).number;
+  const number = (
+    context.payload.issue ??
+    context.payload.pull_request ??
+    context.payload
+  ).number;
 
   const ghToken = core.getInput("gh-token");
   const client = github.getOctokit(ghToken);
@@ -42,9 +46,9 @@ async function run() {
     await client.rest.pulls.listFiles({
       owner: owner,
       repo: repo,
-      pull_number: number
+      pull_number: number,
     })
-  ).data.map(file => file.filename);
+  ).data.map((file) => file.filename);
 
   const applicableChecklistPaths = Object.entries(checklistPaths).filter(
     ([key, _]) => {
@@ -61,15 +65,15 @@ async function run() {
     await client.rest.issues.listComments({
       owner: owner,
       repo: repo,
-      issue_number: number
+      issue_number: number,
     })
-  ).data.find(comment => comment.body.includes(footer));
+  ).data.find((comment) => comment.body.includes(footer));
 
   if (applicableChecklistPaths.length > 0) {
     const body = [
       `${header}\n\n`,
       ...applicableChecklistPaths.map(formatItemsForPath),
-      `\n${footer}`
+      `\n${footer}`,
     ].join("");
 
     if (existingComment) {
@@ -77,14 +81,14 @@ async function run() {
         owner: owner,
         repo: repo,
         comment_id: existingComment.id,
-        body
+        body,
       });
     } else {
       await client.rest.issues.createComment({
         owner: owner,
         repo: repo,
         issue_number: number,
-        body
+        body,
       });
     }
   } else {
@@ -92,11 +96,11 @@ async function run() {
       await client.rest.issues.deleteComment({
         owner: owner,
         repo: repo,
-        comment_id: existingComment.id
+        comment_id: existingComment.id,
       });
     }
     console.log("No paths were modified that match checklist paths");
   }
 }
 
-run().catch(err => core.setFailed(err.message));
+run().catch((err) => core.setFailed(err.message));
